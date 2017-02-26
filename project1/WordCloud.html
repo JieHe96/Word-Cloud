@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+<style>
+body{
+  background-color: #D3D3D3
+}
+
+button {
+    background-color: #9932CC;
+}
+
+header{
+    padding: 1em;
+    color: black;
+    background-color: #D3D3D3;
+    clear: left;
+    text-align: center;
+}
+
+article{
+    padding: 3em;
+    background-color: #D3D3D3;
+    clear: left;
+    text-align: center;
+}
+</style>
+
+<body>
+
+<script>
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '207327329746558',
+      xfbml      : true,
+      version    : 'v2.8'
+    });
+    FB.AppEvents.logPageView();
+  };
+  (function(d, s, id){
+     var js, fjs = d.getElementsByTagName(s)[0];
+     if (d.getElementById(id)) {return;}
+     js = d.createElement(s); js.id = id;
+     js.src = "//connect.facebook.net/en_US/sdk.js";
+     fjs.parentNode.insertBefore(js, fjs);
+   }(document, 'script', 'facebook-jssdk'));
+
+
+
+  var frequency_list = [];
+
+
+
+  function searchArtistName() {
+    $("#testdiv").html(""); 
+
+    var inputname = $("#search_input").val();
+    console.log(inputname);
+    if(inputname.length > 0){
+      $.ajax({
+        url: 'php/communicator.php',
+        type: 'POST',
+        data: {inputname : inputname},
+        success : function(data) {
+
+          $("#testdiv").html(data); 
+
+          //$('#search_input').hide();
+        },
+
+        error : function() {
+          alert('Please type in valid artist name.');
+        }
+      });
+    }
+
+  }
+
+  function searchSongs(text) {
+    $("#testdiv").html(""); 
+    var songarray = [];
+    console.log(text);
+    if(text.length > 0){
+      $.ajax({
+        url: 'php/song_communicator.php',
+        type: 'POST',
+        data: {artistname : text},
+        success : function(data) {
+          console.log("return from song");
+          songarray = eval(data);
+
+          processSongLists(songarray);
+        },
+
+        error : function() {
+          alert('Please type in valid artist name.');
+        }
+      });
+    }
+
+
+  }
+
+  function processSongLists(songlists){
+    var display = "";
+    for(var i = 1; i < songlists.length; i++){
+      display+=songlists[i];
+      display+=' ';
+      i++;
+    }
+
+    display = display.replace(/\n/g, '');
+    display = display.replace(/(1409614312827)/g, '');
+    var arr = display.split(" ");
+    var freq_arr = {};
+    freq_arr = countFreq(arr);
+      var keys=[]; 
+      var val=[]; 
+      var p;
+      for(p in freq_arr) {
+        if(Object.prototype.hasOwnProperty.call(freq_arr,p)) {
+          keys.push(p);
+        }
+      }
+      for(var key in freq_arr) {
+        val.push(freq_arr[key]);
+    }
+    for(var i = 0; i < keys.length; i++) {
+      var obj = {text : keys[i], size : val[i]};
+      frequency_list.push(obj);
+    }
+    console.log(frequency_list.length);
+     
+  }
+
+  function countFreq(arr) {
+      var freq = {};
+
+    for(var i = 0; i< arr.length; i++) {
+        var num = arr[i];
+        freq[num] = freq[num] ? freq[num]+1 : 1;
+    }
+
+    return freq;
+  }
+
+
+
+
+
+</script>
+
+<script src="https://www.jasondavies.com/d3.min.js"></script>
+<script src="https://www.jasondavies.com/wordcloud/cloud.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script type="text/javascript" src="jquery/jquery-3.1.1.min.js"></script>
+<script>
+  var fill = d3.scale.category20();
+  function showCloud() {
+  d3.layout.cloud().size([800, 500])
+      // .words(["This", "is", "some", "random", "text","ooa","ooa","ooa","ooa"].map(function(d) {
+      //   return {text: d, size: 10 + Math.random() * 90};
+      // }))
+      .words(frequency_list)
+      .padding(1)
+      .rotate(0)
+      .font("Impact")
+      .text(function(d) { return d.text; })
+      .fontSize(function(d) { return d.size; })
+      .on("end", draw)
+      .start();
+  }
+
+  function draw(words) {
+    d3.select("p").append("svg")
+        .attr("width", 800)
+        .attr("height", 500)
+      .append("g")
+        .attr("transform", "translate(400,250)")
+        .selectAll("text")
+        .data(words)
+        .enter()
+      .append("text")
+        .style("font-size", function(d) { return d.size * 2 + "px"; })
+        .style("font-family", "Impact")
+        .style("fill", function(d, i) { return fill(i); })
+        .attr("text-anchor", "middle")
+        .attr("transform", function(d) {
+          return "translate(" + [d.x, d.y] + ")rotate(" + 0 + ")";
+        })
+        .text(function(d) { return d.text; })
+        .transition()
+        .each(function () {
+          d3.select(this).on("click", function (d,i) {window.open(d.url)});
+        });
+    d3.select("svg").remove();
+  }
+
+// url containing the link for sharing
+document.url='https://www.clipartsgram.com/image/1417134462-cloud-clipart-blue.png';
+
+</script>
+
+<svg></svg>
+<p></p>
+
+<header>
+<h1>LyricsBox</h1>
+</header>
+
+<article>
+<input type="text" name="search" id="search_input" oninput="searchArtistName()" placeholder="Search..">
+<div id="testdiv"></div>
+
+<button type="button" id="button_search"
+onclick="showCloud()">
+Search</button>
+
+<button id="button_share">Share</button>
+
+<script>
+document.getElementById('button_share').onclick = function() {
+  FB.ui({
+    method: 'share',
+    href: document.url,
+    picture: document.url,
+  }, function(response){});
+};
+</script>
+
+<p id="demo"></p>
+</article>
+
+<!-- <script type="text/javascript" src="jquery/spotify_handler.js"></script> -->
+</body>
+</html> 
